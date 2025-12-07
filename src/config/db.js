@@ -1,16 +1,14 @@
+// src/config/db.js
 const mongoose = require('mongoose');
 
-async function connectDB() {
+const connectDB = async () => {
     try {
-        await mongoose.connect('mongodb://localhost:27017/air_quality', {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log("✓ MongoDB connected");
-    } catch (err) {
-        console.error("MongoDB Error:", err);
-        process.exit(1);
+        const conn = await mongoose.connect(process.env.MONGO_URI);
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+    } catch (error) {
+        console.error("MongoDB Error:", error);
+        process.exit(1); // Dừng server nếu DB lỗi
     }
-}
+};
 
 module.exports = connectDB;

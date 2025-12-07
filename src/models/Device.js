@@ -18,9 +18,8 @@ const DeviceSchema = new mongoose.Schema({
 });
 
 // Auto update timestamp
-DeviceSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
-    next();
+DeviceSchema.pre('save', function() {
+    this.updatedAt = Date.now(); // không dùng next()
 });
 
 module.exports = mongoose.model('Device', DeviceSchema);

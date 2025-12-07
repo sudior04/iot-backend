@@ -1,12 +1,11 @@
 const mqtt = require('mqtt');
-const fs = require('fs');
 const config = require('../config/config');
 const AirQuality = require('../models/AirQualityData.js');
+const Device = require('../models/Device.js');
+const Notification = require('../models/Notifications.js');
 
 class MQTTClient {
-    constructor(dataStore, io) {
-        this.dataStore = dataStore;
-        this.io = io;
+    constructor() {
         this.client = null;
         this.isConnected = false;
     }
@@ -21,11 +20,7 @@ class MQTTClient {
             password: config.mqtt.password
         };
 
-        // TLS Cert
-        if (config.mqtt.cert) {
-            options.ca = config.mqtt.cert;
-            console.log("Loaded CA certificate");
-        }
+        if (config.mqtt.cert) options.ca = config.mqtt.cert;
 
         console.log(`Đang kết nối đến MQTT Broker: ${config.mqtt.brokerUrl}`);
         this.client = mqtt.connect(config.mqtt.brokerUrl, options);
@@ -34,7 +29,6 @@ class MQTTClient {
             this.isConnected = true;
             console.log("MQTT đã kết nối");
 
-            // SUBSCRIBE TẤT CẢ
             this.client.subscribe(config.mqtt.topics.all, err => {
                 if (err) return console.error("Lỗi subscribe:", err);
                 console.log(`Subscribe: ${config.mqtt.topics.all}`);
@@ -50,81 +44,77 @@ class MQTTClient {
         this.client.on("reconnect", () => console.log("Reconnecting MQTT..."));
     }
 
-    async handleMessage(topic, message) {
-        const msg = message.toString();
-        console.log(`MQTT [${topic}]: ${msg}`);
+async handleMessage(topic, message) {
+    const msg = message.toString();
+    console.log(`MQTT [${topic}]: ${msg}`);
 
-        try {
-            if (topic === config.mqtt.topics.data) {
-                const json = JSON.parse(msg);
+    try {
+        const json = JSON.parse(msg);
 
-                const updated = this.dataStore.updateAll(json);
-
-                await AirQuality.create({
-                    deviceId: json.device,
-                    pm25: json.pm25,
-                    mq135: json.mq135,
-                    mq2: json.mq2,
-                    temperature: json.temperature,
-                    humidity: json.humidity
-                });
-
-                this.io.emit("airQualityUpdate", {
-                    type: "sensor_data",
-                    data: updated,
-                    timestamp: new Date()
-                });
-
-                return;
-            }
-
-            if (topic === config.mqtt.topics.notification) {
-                const json = JSON.parse(msg);
-
-                const dataRecord = await AirQuality.create({
-                    deviceId: json.deviceId || "esp32",
-                    MQ135: json.mq135 || null,
-                    MQ2: json.mq2 || null,
-                    temperature: json.temperature || null,
-                    humidity: json.humidity || null,
-                    pm25: json.pm25 || null
-                });
-
-                const notify = await Notification.create({
-                    data: dataRecord._id,
-                    type: json.type || "alert",
-                    message: json.message || "ESP32 gửi cảnh báo"
-                });
-
-                this.io.emit("notification", {
-                    ...json,
-                    notificationId: notify._id,
-                    dataId: dataRecord._id
-                });
-
-                return;
-            }
-
-        } catch (err) {
-            console.error("Lỗi khi xử lý message:", err);
+        // Lấy hoặc tạo Device
+        let device = await Device.findOne({ deviceId: json.deviceId || "esp32" });
+        if (!device) {
+            device = await Device.create({
+                deviceId: json.deviceId || "esp32",
+                MQ2Threshold: 1000,
+                MQ135Threshold: 1000,
+                HumThreshold: 70,
+                TempThreshold: 50
+            });
         }
+
+        // Nếu là dữ liệu sensor
+        if (topic === config.mqtt.topics.data) {
+            await AirQuality.create({
+                device: device._id,
+                pm25: json.pm25 ? parseFloat(json.pm25) : null,
+                MQ135: json.mq135 ? parseFloat(json.mq135) : null,
+                MQ2: json.mq2 ? parseFloat(json.mq2) : null,
+                temperature: json.temp ? parseFloat(json.temp) : null,
+                humidity: json.humidity ? parseFloat(json.humidity) : null
+            });
+        }
+
+        // Nếu là notification
+        if (topic === config.mqtt.topics.notification) {
+            const dataRecord = await AirQuality.create({
+                device: device._id,
+                pm25: json.pm25 ? parseFloat(json.pm25) : null,
+                MQ135: json.mq135 ? parseFloat(json.mq135) : null,
+                MQ2: json.mq2 ? parseFloat(json.mq2) : null,
+                temperature: json.temp ? parseFloat(json.temp) : null,
+                humidity: json.humidity ? parseFloat(json.humidity) : null,
+                THRESHOLD_MQ135: json.threshold34 ? parseFloat(json.threshold34) : null,
+                THRESHOLD_MQ2: json.threshold35 ? parseFloat(json.threshold35) : null,
+                THRESHOLD_TEMP: json.threshold_temperature ? parseFloat(json.threshold_temperature) : null,
+                THRESHOLD_HUMD: json.threshold_humidity ? parseFloat(json.threshold_humidity) : null
+            });
+
+            await Notification.create({
+                device: device._id,
+                airQuality: dataRecord._id, // chắc chắn không undefined
+                type: json.event || "alert",
+                message: `Cảnh báo: ${json.event}`
+            });
+        }
+
+    } catch (err) {
+        console.error("Lỗi khi xử lý message:", err);
     }
+}
 
 
-    // ========== PUBLISH COMMAND ==========
     publish(topic, message) {
         if (!this.isConnected) {
             console.error("MQTT chưa kết nối");
             return;
         }
-
         this.client.publish(topic, message, err => {
             if (err) console.error("Publish error:", err);
             else console.log(`Publish [${topic}]: ${message}`);
         });
     }
 
-    // ========== SERVER → ESP32 ==========
     requestData() {
         this.publish(config.mqtt.topics.getData, "request");
     }

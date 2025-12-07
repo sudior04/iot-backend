@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const NotificationSchema = new mongoose.Schema({
-    data: { 
+    airQuality: { 
         type: mongoose.Schema.Types.ObjectId,
         ref: 'AirQuality',
         required: true
