@@ -10,7 +10,7 @@ const AirQualityData = require('./models/AirQualityData');
 const app = express();
 const server = http.createServer(app);
 
-// Cấu hình Socket.IO với CORS
+// Socket.IO với CORS
 const io = socketIo(server, {
     cors: {
         origin: "*",
@@ -22,13 +22,14 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
-// Khởi tạo data store
+// Data Store
 const airQualityData = new AirQualityData();
 
-// Khởi tạo MQTT Client
+// MQTT Client
 const mqttClient = new MQTTClient(airQualityData, io);
 
-// API Routes
+// ===== REST API =====
+
 app.get('/', (req, res) => {
     res.json({
         message: 'IoT Air Quality Monitoring Server',
@@ -37,112 +38,107 @@ app.get('/', (req, res) => {
     });
 });
 
-// Lấy dữ liệu mới nhất
+// Dữ liệu mới nhất
 app.get('/api/data/latest', (req, res) => {
-    const data = airQualityData.getLatestData();
-    const quality = airQualityData.getAirQualityLevel();
-
     res.json({
         success: true,
-        data: data,
-        airQuality: quality
+        data: airQualityData.getLatestData(),
+        airQuality: airQualityData.getAirQualityLevel()
     });
 });
 
-// Lấy lịch sử dữ liệu
+// Lịch sử
 app.get('/api/data/history', (req, res) => {
     const { type, limit } = req.query;
-    const history = airQualityData.getHistory(type, limit ? parseInt(limit) : 50);
 
     res.json({
         success: true,
-        count: history.length,
-        data: history
+        data: airQualityData.getHistory(type, limit ? parseInt(limit) : 50)
     });
 });
 
-// Lấy mức chất lượng không khí
+// Xếp loại không khí
 app.get('/api/air-quality', (req, res) => {
-    const quality = airQualityData.getAirQualityLevel();
-    const latestData = airQualityData.getLatestData();
-
     res.json({
         success: true,
-        airQuality: quality,
-        pm25: latestData.pm25
+        airQuality: airQualityData.getAirQualityLevel(),
+        pm25: airQualityData.getLatestData().pm25
     });
 });
 
-// Kiểm tra trạng thái MQTT
+// Trạng thái MQTT
 app.get('/api/mqtt/status', (req, res) => {
-    const status = mqttClient.getStatus();
     res.json({
         success: true,
-        mqtt: status
+        mqtt: mqttClient.getStatus()
     });
 });
 
-// Gửi message qua MQTT (để điều khiển thiết bị nếu cần)
+// ===== PUBLISH CONTROL (chỉ cho phép 2 topic hợp lệ) =====
 app.post('/api/mqtt/publish', (req, res) => {
-    const { topic, message } = req.body;
+    const { action, sensor, value } = req.body;
 
-    if (!topic || !message) {
+    if (!action) {
+        return res.status(400).json({ success: false, error: "Thiếu action" });
+    }
+
+    if (action === "getData") {
+        mqttClient.requestData();
+    }
+    else if (action === "changeThreshold") {
+        if (!sensor || value === undefined) {
+            return res.status(400).json({
+                success: false,
+                error: "Cần sensor và value để đổi threshold"
+            });
+        }
+        mqttClient.sendChangeThreshold(sensor, value);
+    }
+    else {
         return res.status(400).json({
             success: false,
-            error: 'Topic và message là bắt buộc'
+            error: "Action không hợp lệ"
         });
     }
 
-    mqttClient.publish(topic, message.toString());
-
-    res.json({
-        success: true,
-        message: 'Message đã được gửi'
-    });
+    res.json({ success: true });
 });
 
-// Socket.IO connection handling
+// ===== WebSocket =====
 io.on('connection', (socket) => {
-    console.log(`✓ Client mới kết nối: ${socket.id}`);
+    console.log(`✓ Client kết nối: ${socket.id}`);
 
-    // Gửi dữ liệu mới nhất cho client vừa kết nối
     socket.emit('initialData', {
         latestData: airQualityData.getLatestData(),
         airQuality: airQualityData.getAirQualityLevel()
     });
 
-    // Xử lý yêu cầu lấy lịch sử
-    socket.on('requestHistory', (params) => {
-        const history = airQualityData.getHistory(params?.type, params?.limit);
-        socket.emit('historyData', history);
+    socket.on('requestHistory', ({ type, limit }) => {
+        socket.emit('historyData', airQualityData.getHistory(type, limit));
     });
 
     socket.on('disconnect', () => {
-        console.log(`✗ Client ngắt kết nối: ${socket.id}`);
+        console.log(`✗ Client ngắt: ${socket.id}`);
     });
 });
 
-// Khởi động server
+// ===== Chạy server =====
 server.listen(config.server.port, () => {
     console.log('='.repeat(50));
-    console.log('🚀 IoT Air Quality Monitoring Server');
+    console.log('🚀 IoT Server Running');
     console.log('='.repeat(50));
-    console.log(`📡 HTTP Server đang chạy tại: http://localhost:${config.server.port}`);
-    console.log(`🔌 WebSocket Server đang chạy tại: ws://localhost:${config.server.port}`);
+    console.log(`📡 HTTP: http://localhost:${config.server.port}`);
+    console.log(`🔌 WebSocket: ws://localhost:${config.server.port}`);
     console.log('='.repeat(50));
 
-    // Kết nối MQTT
     mqttClient.connect();
 });
 
-// Xử lý tắt server
+// ===== Tắt server =====
 process.on('SIGINT', () => {
-    console.log('\n⚠ Đang tắt server...');
+    console.log('\nĐang tắt server...');
     mqttClient.disconnect();
-    server.close(() => {
-        console.log('✓ Server đã tắt');
-        process.exit(0);
-    });
+    server.close(() => process.exit(0));
 });
 
 module.exports = { app, server, io };

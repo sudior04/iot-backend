@@ -1,5 +1,7 @@
 const mqtt = require('mqtt');
+const fs = require('fs');
 const config = require('../config/config');
+const AirQuality = require('../models/AirQualityData.js');
 
 class MQTTClient {
     constructor(dataStore, io) {
@@ -11,128 +13,131 @@ class MQTTClient {
 
     connect() {
         const options = {
-            clientId: `mqtt_backend_${Math.random().toString(16).slice(3)}`,
+            clientId: `backend_${Math.random().toString(16).slice(3)}`,
             clean: true,
             connectTimeout: 4000,
             reconnectPeriod: 1000,
+            username: config.mqtt.username,
+            password: config.mqtt.password
         };
 
-        //Thêm Cert cho TLS
-        if (config.mqtt.certPath) {
-            try {
-                options.ca = fs.readFileSync(config.mqtt.certPath);
-                console.log(`✓ Loaded CA Cert: ${config.mqtt.certPath}`);
-            } catch (err) {
-                console.error("✗ Không thể load CA Cert:", err);
-            }
+        // TLS Cert
+        if (config.mqtt.cert) {
+            options.ca = config.mqtt.cert;
+            console.log("Loaded CA certificate");
         }
-
-        // Thêm username và password nếu có
-        if (config.mqtt.username) {
-            options.username = config.mqtt.username;
-            options.password = config.mqtt.password;
-        }
-
 
         console.log(`Đang kết nối đến MQTT Broker: ${config.mqtt.brokerUrl}`);
         this.client = mqtt.connect(config.mqtt.brokerUrl, options);
 
-        this.client.on('connect', () => {
+        this.client.on("connect", () => {
             this.isConnected = true;
-            console.log('✓ Đã kết nối thành công đến MQTT Broker');
+            console.log("MQTT đã kết nối");
 
-            // Subscribe tất cả các topic
-            this.client.subscribe(config.mqtt.topics.all, (err) => {
-                if (!err) {
-                    console.log(`✓ Đã subscribe topic: ${config.mqtt.topics.all}`);
-                } else {
-                    console.error('✗ Lỗi khi subscribe:', err);
-                }
+            // SUBSCRIBE TẤT CẢ
+            this.client.subscribe(config.mqtt.topics.all, err => {
+                if (err) return console.error("Lỗi subscribe:", err);
+                console.log(`Subscribe: ${config.mqtt.topics.all}`);
             });
         });
 
-        this.client.on('message', (topic, message) => {
+        this.client.on("message", (topic, message) => {
             this.handleMessage(topic, message);
         });
 
-        this.client.on('error', (error) => {
-            console.error('✗ Lỗi MQTT:', error);
-        });
-
-        this.client.on('offline', () => {
-            this.isConnected = false;
-            console.log('⚠ MQTT Client đang offline');
-        });
-
-        this.client.on('reconnect', () => {
-            console.log('↻ Đang kết nối lại MQTT Broker...');
-        });
+        this.client.on("error", err => console.error("MQTT Error:", err));
+        this.client.on("offline", () => this.isConnected = false);
+        this.client.on("reconnect", () => console.log("Reconnecting MQTT..."));
     }
 
-    handleMessage(topic, message) {
+    async handleMessage(topic, message) {
+        const msg = message.toString();
+        console.log(`MQTT [${topic}]: ${msg}`);
+
         try {
-            const value = message.toString();
-            console.log(`📨 Nhận được dữ liệu từ topic [${topic}]: ${value}`);
+            if (topic === config.mqtt.topics.data) {
+                const json = JSON.parse(msg);
 
-            let dataType = null;
+                const updated = this.dataStore.updateAll(json);
 
-            // Xác định loại dữ liệu dựa trên topic
-            if (topic.includes('pm25')) {
-                dataType = 'pm25';
-            } else if (topic.includes('pm10')) {
-                dataType = 'pm10';
-            } else if (topic.includes('co')) {
-                dataType = 'co';
-            } else if (topic.includes('gas')) {
-                dataType = 'gas';
-            } else if (topic.includes('temperature')) {
-                dataType = 'temperature';
-            } else if (topic.includes('humidity')) {
-                dataType = 'humidity';
-            }
-
-            if (dataType) {
-                // Cập nhật dữ liệu trong store
-                const updatedData = this.dataStore.updateData(dataType, value);
-
-                // Gửi dữ liệu mới đến tất cả client qua WebSocket
-                this.io.emit('airQualityUpdate', {
-                    type: dataType,
-                    value: parseFloat(value),
-                    timestamp: new Date().toISOString(),
-                    latestData: updatedData
+                await AirQuality.create({
+                    deviceId: json.device,
+                    pm25: json.pm25,
+                    mq135: json.mq135,
+                    mq2: json.mq2,
+                    temperature: json.temperature,
+                    humidity: json.humidity
                 });
 
-                console.log(`✓ Đã cập nhật và phát dữ liệu ${dataType}`);
+                this.io.emit("airQualityUpdate", {
+                    type: "sensor_data",
+                    data: updated,
+                    timestamp: new Date()
+                });
+
+                return;
             }
-        } catch (error) {
-            console.error('✗ Lỗi khi xử lý message:', error);
+
+            if (topic === config.mqtt.topics.notification) {
+                const json = JSON.parse(msg);
+
+                const dataRecord = await AirQuality.create({
+                    deviceId: json.deviceId || "esp32",
+                    MQ135: json.mq135 || null,
+                    MQ2: json.mq2 || null,
+                    temperature: json.temperature || null,
+                    humidity: json.humidity || null,
+                    pm25: json.pm25 || null
+                });
+
+                const notify = await Notification.create({
+                    data: dataRecord._id,
+                    type: json.type || "alert",
+                    message: json.message || "ESP32 gửi cảnh báo"
+                });
+
+                this.io.emit("notification", {
+                    ...json,
+                    notificationId: notify._id,
+                    dataId: dataRecord._id
+                });
+
+                return;
+            }
+
+        } catch (err) {
+            console.error("Lỗi khi xử lý message:", err);
         }
     }
 
-    publish(topic, message) {
-        if (!this.isConnected) return console.error("✗ MQTT chưa kết nối");
 
-        this.client.publish(topic, message, (err) => {
-            if (err) console.error("✗ Publish error:", err);
-            else console.log(`✓ Publish → [${topic}] : ${message}`);
+    // ========== PUBLISH COMMAND ==========
+    publish(topic, message) {
+        if (!this.isConnected) {
+            console.error("MQTT chưa kết nối");
+            return;
+        }
+
+        this.client.publish(topic, message, err => {
+            if (err) console.error("Publish error:", err);
+            else console.log(`Publish [${topic}]: ${message}`);
         });
+    }
+
+    // ========== SERVER → ESP32 ==========
+    requestData() {
+        this.publish(config.mqtt.topics.getData, "request");
     }
 
     sendChangeThreshold(sensor, newValue) {
         const msg = JSON.stringify({ sensor, threshold: newValue });
-
         this.publish(config.mqtt.topics.changeThreshold, msg);
-    }
-
-    requestData() {
-        this.publish(config.mqtt.topics.getData, "request");
     }
 
     disconnect() {
         if (this.client) {
             this.client.end();
-            console.log('✓ Đã ngắt kết nối MQTT');
+            console.log("MQTT Disconnected");
         }
     }
 
