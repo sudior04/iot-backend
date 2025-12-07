@@ -17,11 +17,22 @@ class MQTTClient {
             reconnectPeriod: 1000,
         };
 
+        //Thêm Cert cho TLS
+        if (config.mqtt.certPath) {
+            try {
+                options.ca = fs.readFileSync(config.mqtt.certPath);
+                console.log(`✓ Loaded CA Cert: ${config.mqtt.certPath}`);
+            } catch (err) {
+                console.error("✗ Không thể load CA Cert:", err);
+            }
+        }
+
         // Thêm username và password nếu có
         if (config.mqtt.username) {
             options.username = config.mqtt.username;
             options.password = config.mqtt.password;
         }
+
 
         console.log(`Đang kết nối đến MQTT Broker: ${config.mqtt.brokerUrl}`);
         this.client = mqtt.connect(config.mqtt.brokerUrl, options);
@@ -100,17 +111,22 @@ class MQTTClient {
     }
 
     publish(topic, message) {
-        if (this.isConnected) {
-            this.client.publish(topic, message, (err) => {
-                if (err) {
-                    console.error('✗ Lỗi khi publish message:', err);
-                } else {
-                    console.log(`✓ Đã gửi message đến topic [${topic}]: ${message}`);
-                }
-            });
-        } else {
-            console.error('✗ MQTT Client chưa kết nối');
-        }
+        if (!this.isConnected) return console.error("✗ MQTT chưa kết nối");
+
+        this.client.publish(topic, message, (err) => {
+            if (err) console.error("✗ Publish error:", err);
+            else console.log(`✓ Publish → [${topic}] : ${message}`);
+        });
+    }
+
+    sendChangeThreshold(sensor, newValue) {
+        const msg = JSON.stringify({ sensor, threshold: newValue });
+
+        this.publish(config.mqtt.topics.changeThreshold, msg);
+    }
+
+    requestData() {
+        this.publish(config.mqtt.topics.getData, "request");
     }
 
     disconnect() {
