@@ -67,23 +67,17 @@ const userSchema = new mongoose.Schema({
 /**
  * Pre-save hook - Hash password trước khi lưu
  */
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     // Chỉ hash password nếu nó được modify
-    if (!this.isModified('password')) return next();
+    if (!this.isModified('password')) return;
 
-    try {
-        const bcrypt = require('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
 
-        // Nếu password thay đổi (không phải lần đầu tạo), lưu thời gian thay đổi
-        if (!this.isNew) {
-            this.passwordChangedAt = Date.now() - 1000; // Trừ 1s để đảm bảo token được tạo sau khi password thay đổi
-        }
-
-        next();
-    } catch (error) {
-        next(error);
+    // Nếu password thay đổi (không phải lần đầu tạo), lưu thời gian thay đổi
+    if (!this.isNew) {
+        this.passwordChangedAt = Date.now() - 1000; // Trừ 1s để đảm bảo token được tạo sau khi password thay đổi
     }
 });
 
