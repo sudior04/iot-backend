@@ -11,5 +11,5 @@ router.get('/latest/:deviceId', (req, res) => airQualityController.getLatestData
 
 // GET /api/data/history/:deviceId - Lấy lịch sử dữ liệu
 router.get('/history/:deviceId', (req, res) => airQualityController.getHistory(req, res));
-
+router.get('/time-range/:deviceId', (req,res) =>airQualityController.getDataByTimeRange(req,res));
 module.exports = router;
