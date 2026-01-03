@@ -2,13 +2,8 @@ const Device = require('../models/Device');
 const AirQuality = require('../models/AirQualityData');
 const logger = require('../utils/logger');
 
-/**
- * Device Service - Xử lý logic nghiệp vụ liên quan đến device
- */
+
 class DeviceService {
-    /**
-     * Lấy hoặc tạo device
-     */
     async getOrCreateDevice(deviceId = 'esp32') {
         try {
             let device = await Device.findOne({ deviceId });
@@ -31,9 +26,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Lấy device theo ID
-     */
     async getDeviceById(deviceId) {
         try {
             const device = await Device.findOne({ deviceId });
@@ -44,9 +36,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Cập nhật threshold cho device
-     */
     async updateThresholds(deviceId, thresholds) {
         try {
             const { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP } = thresholds;
@@ -69,9 +58,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Cập nhật trạng thái thiết bị
-     */
     async updateDeviceStatus(deviceId, status) {
         try {
             const updateData = {
@@ -103,9 +89,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Lấy trạng thái và thời gian hoạt động của thiết bị
-     */
     async getDeviceStatus(deviceId) {
         try {
             const device = await Device.findOne({ deviceId });
@@ -147,10 +130,6 @@ class DeviceService {
             throw error;
         }
     }
-
-    /**
-     * Cập nhật uptime khi device offline
-     */
     async updateUptimeOnOffline(deviceId) {
         try {
             const device = await Device.findOne({ deviceId });
@@ -179,9 +158,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Lấy tất cả thiết bị với trạng thái
-     */
     async getAllDevices() {
         try {
             const devices = await Device.find({});
@@ -192,9 +168,6 @@ class DeviceService {
         }
     }
 
-    /**
-     * Cập nhật metadata của device
-     */
     async updateDeviceMetadata(deviceId, metadata) {
         try {
             const updateData = {

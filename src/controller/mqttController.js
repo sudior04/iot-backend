@@ -4,14 +4,8 @@ const HTTP_STATUS = require('../constants/httpStatus');
 const MESSAGES = require('../constants/messages');
 const logger = require('../utils/logger');
 
-/**
- * MQTT Controller - Xử lý HTTP requests liên quan đến MQTT
- */
 class MQTTController {
-    /**
-     * Lấy trạng thái MQTT connection
-     * GET /api/mqtt/status
-     */
+
     async getStatus(req, res) {
         try {
             const status = mqttService.getStatus();
@@ -22,23 +16,17 @@ class MQTTController {
         }
     }
 
-    /**
-     * Gửi yêu cầu lấy dữ liệu từ device
-     * POST /api/mqtt/get-data
-     * Body: { deviceId?: string }
-     */
-    async sendGetData(req, res) {
+    async requestData(req, res) {
         try {
             const { deviceId } = req.body;
             const result = await mqttService.requestData(deviceId);
-
             return successResponse(
                 res,
                 result,
-                MESSAGES.MQTT_GET_DATA_SENT || 'Yêu cầu lấy dữ liệu đã được gửi'
+                'Yêu cầu lấy dữ liệu đã được gửi'
             );
         } catch (error) {
-            logger.error('Error in sendGetData:', error);
+            logger.error('Error in requestData:', error);
             return errorResponse(
                 res,
                 error.message,
@@ -49,11 +37,64 @@ class MQTTController {
         }
     }
 
-    /**
-     * Gửi lệnh thay đổi threshold
-     * POST /api/mqtt/change-threshold
-     * Body: { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP, deviceId? }
-     */
+    async sendAlarmOff(req, res) {
+        try {
+            const { deviceId } = req.body;
+            const result = await mqttService.sendAlarmOff(deviceId);
+
+            return successResponse(
+                res,
+                result,
+                'Lệnh tắt còi cảnh báo đã được gửi'
+            );
+        } catch (error) {
+            logger.error('Error in sendAlarmOff:', error);
+            return errorResponse(
+                res,
+                error.message,
+                error.message.includes('chưa sẵn sàng')
+                    ? HTTP_STATUS.SERVICE_UNAVAILABLE
+                    : HTTP_STATUS.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    async sendChangeRate(req, res) {
+        try {
+            const { rate, deviceId } = req.body;
+
+            if (!rate) {
+                return errorResponse(
+                    res,
+                    'Vui lòng cung cấp tốc độ publish (rate)',
+                    HTTP_STATUS.BAD_REQUEST
+                );
+            }
+
+            const result = await mqttService.changePublishRate(rate, deviceId);
+
+            return successResponse(
+                res,
+                result,
+                `Tốc độ publish đã được đổi thành ${rate} giây`
+            );
+        } catch (error) {
+            logger.error('Error in sendChangeRate:', error);
+
+            if (error.message.includes('phải từ')) {
+                return errorResponse(res, error.message, HTTP_STATUS.BAD_REQUEST);
+            }
+
+            return errorResponse(
+                res,
+                error.message,
+                error.message.includes('chưa sẵn sàng')
+                    ? HTTP_STATUS.SERVICE_UNAVAILABLE
+                    : HTTP_STATUS.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     async sendChangeThreshold(req, res) {
         try {
             const { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP, deviceId } = req.body;
@@ -68,8 +109,9 @@ class MQTTController {
             }
 
             const thresholdData = {
-                THRESHOLD34,
-                THRESHOLD35,
+                THRESHOLD_MQ2,
+                THRESHOLD_MQ135,
+                THRESHOLD_DUST,
                 THRESHOLD_HUMD,
                 THRESHOLD_TEMP
             };
@@ -99,11 +141,6 @@ class MQTTController {
         }
     }
 
-    /**
-     * Gửi command tùy chỉnh đến device
-     * POST /api/mqtt/send-command
-     * Body: { deviceId, command, params? }
-     */
     async sendCustomCommand(req, res) {
         try {
             const { deviceId, command, params } = req.body;
@@ -135,11 +172,6 @@ class MQTTController {
         }
     }
 
-    /**
-     * Publish message tùy chỉnh
-     * POST /api/mqtt/publish
-     * Body: { topic, payload }
-     */
     async publishMessage(req, res) {
         try {
             const { topic, payload } = req.body;

@@ -11,16 +11,17 @@ const { validateThreshold } = require('../middlewares/validateRequest');
 router.get('/status', (req, res) => mqttController.getStatus(req, res));
 
 // Gửi yêu cầu lấy dữ liệu từ device
-router.post('/get-data', (req, res) => mqttController.sendGetData(req, res));
-
-// Legacy endpoint (backward compatibility)
-router.post('/getData', (req, res) => mqttController.sendGetData(req, res));
+router.post('/getData', (req, res) => mqttController.requestData(req, res));
 
 // Thay đổi threshold
 router.post('/change-threshold', validateThreshold, (req, res) => mqttController.sendChangeThreshold(req, res));
 
-// Legacy endpoint (backward compatibility)
-router.post('/changeThreshold', validateThreshold, (req, res) => mqttController.sendChangeThreshold(req, res));
+
+// Gửi lệnh tắt còi cảnh báo
+router.post('/alarm-off', (req, res) => mqttController.sendAlarmOff(req, res));
+
+// Gửi lệnh thay đổi tốc độ publish
+router.post('/change-rate', (req, res) => mqttController.sendChangeRate(req, res));
 
 // Gửi command tùy chỉnh
 router.post('/send-command', (req, res) => mqttController.sendCustomCommand(req, res));

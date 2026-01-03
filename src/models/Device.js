@@ -10,6 +10,7 @@ const DeviceSchema = new mongoose.Schema({
 
     MQ2Threshold: { type: Number, default: 1000 },
     MQ135Threshold: { type: Number, default: 1000 },
+    DustThreshold: { type: Number, default: 1000 },
     HumThreshold: { type: Number, default: 0 },
     TempThreshold: { type: Number, default: 0 },
 

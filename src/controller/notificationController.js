@@ -5,14 +5,8 @@ const HTTP_STATUS = require('../constants/httpStatus');
 const MESSAGES = require('../constants/messages');
 const logger = require('../utils/logger');
 
-/**
- * Notification Controller - Xử lý HTTP requests liên quan đến thông báo
- */
+
 class NotificationController {
-    /**
-     * Lấy notifications theo device với filters
-     * GET /api/notifications/:deviceId?limit=50&severity=warning&isRead=false&type=high_pm25&startDate=2024-01-01&endDate=2024-12-31
-     */
     async getNotifications(req, res) {
         try {
             const { deviceId } = req.params;

@@ -3,14 +3,7 @@ const { successResponse, errorResponse } = require('../utils/responseHandler');
 const HTTP_STATUS = require('../constants/httpStatus');
 const logger = require('../utils/logger');
 
-/**
- * Device Controller - Xử lý HTTP requests liên quan đến device
- */
 class DeviceController {
-    /**
-     * Lấy hoặc tạo device
-     * GET /api/devices/:deviceId
-     */
     async getOrCreateDevice(req, res) {
         try {
             const { deviceId } = req.params;
@@ -24,10 +17,6 @@ class DeviceController {
         }
     }
 
-    /**
-     * Lấy device theo ID
-     * GET /api/devices/by-id/:deviceId
-     */
     async getDeviceById(req, res) {
         try {
             const { deviceId } = req.params;
@@ -45,10 +34,6 @@ class DeviceController {
         }
     }
 
-    /**
-     * Lấy tất cả devices
-     * GET /api/devices
-     */
     async getAllDevices(req, res) {
         try {
             const devices = await deviceService.getAllDevices();
@@ -63,17 +48,12 @@ class DeviceController {
         }
     }
 
-    /**
-     * Cập nhật thresholds
-     * PUT /api/devices/:deviceId/thresholds
-     * Body: { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP }
-     */
     async updateThresholds(req, res) {
         try {
             const { deviceId } = req.params;
             const thresholds = req.body;
 
-            if (!thresholds.THRESHOLD34 && !thresholds.THRESHOLD35 && !thresholds.THRESHOLD_HUMD && !thresholds.THRESHOLD_TEMP) {
+            if (!thresholds.THRESHOLD_MQ2 && !thresholds.THRESHOLD_MQ135 && !thresholds.THRESHOLD_HUMD && !thresholds.THRESHOLD_TEMP && !thresholds.THRESHOLD_DUST) {
                 return errorResponse(res, 'Vui lòng cung cấp ít nhất một threshold', HTTP_STATUS.BAD_REQUEST);
             }
 
@@ -90,11 +70,6 @@ class DeviceController {
         }
     }
 
-    /**
-     * Cập nhật trạng thái device
-     * PUT /api/devices/:deviceId/status
-     * Body: { status }
-     */
     async updateStatus(req, res) {
         try {
             const { deviceId } = req.params;
@@ -122,10 +97,6 @@ class DeviceController {
         }
     }
 
-    /**
-     * Lấy trạng thái và uptime của device
-     * GET /api/devices/:deviceId/status
-     */
     async getDeviceStatus(req, res) {
         try {
             const { deviceId } = req.params;
@@ -144,11 +115,6 @@ class DeviceController {
         }
     }
 
-    /**
-     * Cập nhật metadata của device
-     * PUT /api/devices/:deviceId/metadata
-     * Body: { firmwareVersion, location, description }
-     */
     async updateMetadata(req, res) {
         try {
             const { deviceId } = req.params;

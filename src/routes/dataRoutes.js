@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const airQualityController = require('../controller/airQualityController');
 
-/**
- * Air Quality Data Routes
- */
-
-// GET /api/data/latest/:deviceId - Lấy dữ liệu mới nhất
 router.get('/latest/:deviceId', (req, res) => airQualityController.getLatestData(req, res));
 
-// GET /api/data/history/:deviceId - Lấy lịch sử dữ liệu
 router.get('/history/:deviceId', (req, res) => airQualityController.getHistory(req, res));
+
+router.get('/time-range/:deviceId', (req, res) => airQualityController.getDataByTimeRange(req, res));
+
+router.get('/statistics/:deviceId', (req, res) => airQualityController.getStatistics(req, res));
+
+router.get('/grouped/:deviceId', (req, res) => airQualityController.getGroupedData(req, res));
 
 module.exports = router;
