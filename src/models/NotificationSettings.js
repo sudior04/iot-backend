@@ -1,8 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Notification Settings Schema - Cài đặt bật/tắt thông báo cho từng device và user
- */
 const NotificationSettingsSchema = new mongoose.Schema({
     device: {
         type: mongoose.Schema.Types.ObjectId,

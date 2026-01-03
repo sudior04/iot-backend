@@ -1,4 +1,10 @@
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+
+const certPath = process.env.MQTT_CERT_PATH
+    ? process.env.MQTT_CERT_PATH
+    : path.join(__dirname, '../../cert/ca.pem');
 
 module.exports = {
     server: {
@@ -10,14 +16,15 @@ module.exports = {
         username: process.env.MQTT_USERNAME || '',
         password: process.env.MQTT_PASSWORD || '',
 
-        rejectUnauthorized: false,
+        cert: fs.readFileSync(certPath),
 
         topics: {
-            data: process.env.TOPIC_DATA || 'air-quality/data',
-            changeThreshold: process.env.TOPIC_CHANGE_THRESHOLD || 'air-quality/cmd/threshold',
-            alarmOff: process.env.TOPIC_ALARM_OFF || 'air-quality/cmd/alarm_off',
-            changeRate: process.env.TOPIC_RATE || 'air-quality/cmd/publish_rate',
-            all: process.env.MQTT_TOPIC || 'air-quality/#'
+            data: process.env.TOPIC_DATA,
+            changeThreshold: process.env.TOPIC_CHANGE_THRESHOLD,
+            alarmOff: process.env.TOPIC_ALARM_OFF,
+            changeRate: process.env.TOPIC_RATE,
+
+            all: process.env.MQTT_TOPIC
         }
     }
 };

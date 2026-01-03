@@ -1,5 +1,7 @@
 const logger = require('../utils/logger');
 const deviceService = require('./deviceService');
+const airQualityService = require('./airQualityService');
+const notificationService = require('./notificationService');
 const config = require('../config/config');
 
 class MQTTService {
@@ -136,6 +138,68 @@ class MQTTService {
         } catch (error) {
             logger.error('Error in changeThreshold:', error);
             throw error;
+        }
+    }
+
+    async checkThresholdsAndNotify(device, record, data) {
+        try {
+            const notifications = [];
+
+            // PM2.5 (dùng dust)
+            if (data.dust !== undefined && data.dust > 100) {
+                notifications.push({
+                    type: 'high_pm25',
+                    message: `PM2.5 cao: ${data.dust} µg/m³`,
+                    severity: data.dust > 200 ? 'critical' : 'warning'
+                });
+            }
+
+            if (data.mq135 !== undefined && device.MQ135Threshold && data.mq135 > device.MQ135Threshold) {
+                notifications.push({
+                    type: 'high_mq135',
+                    message: `MQ135 vượt ngưỡng: ${data.mq135}`,
+                    severity: 'warning'
+                });
+            }
+
+            if (data.mq2 !== undefined && device.MQ2Threshold && data.mq2 > device.MQ2Threshold) {
+                notifications.push({
+                    type: 'high_mq2',
+                    message: `MQ2 vượt ngưỡng: ${data.mq2}`,
+                    severity: 'warning'
+                });
+            }
+
+            if (data.temp !== undefined && device.TempThreshold && data.temp > device.TempThreshold) {
+                notifications.push({
+                    type: 'high_temperature',
+                    message: `Nhiệt độ cao: ${data.temp}°C`,
+                    severity: 'warning'
+                });
+            }
+
+            if (data.humidity !== undefined && device.HumThreshold && data.humidity > device.HumThreshold) {
+                notifications.push({
+                    type: 'high_humidity',
+                    message: `Độ ẩm cao: ${data.humidity}%`,
+                    severity: 'info'
+                });
+            }
+
+            for (const notif of notifications) {
+                await notificationService.createNotification(
+                    device._id,
+                    record._id,
+                    notif.type,
+                    notif.message,
+                    notif.severity
+                );
+            }
+
+            return notifications;
+        } catch (error) {
+            logger.error('Error in checkThresholdsAndNotify:', error);
+            return [];
         }
     }
 

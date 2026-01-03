@@ -3,10 +3,6 @@ const router = express.Router();
 const mqttController = require('../controller/mqttController');
 const { validateThreshold } = require('../middlewares/validateRequest');
 
-/**
- * MQTT Routes
- */
-
 // Lấy trạng thái MQTT connection
 router.get('/status', (req, res) => mqttController.getStatus(req, res));
 
