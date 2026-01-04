@@ -37,11 +37,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Tạo notification mới (manual)
-     * POST /api/notifications/:deviceId
-     * Body: { eventType, message, severity }
-     */
     async createNotification(req, res) {
         try {
             const { deviceId } = req.params;
@@ -79,10 +74,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Lấy cài đặt thông báo
-     * GET /api/notifications/:deviceId/settings
-     */
     async getSettings(req, res) {
         try {
             const { deviceId } = req.params;
@@ -100,11 +91,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Cập nhật cài đặt thông báo
-     * PUT /api/notifications/:deviceId/settings
-     * Body: { enabled, notificationTypes, quietHours, maxNotificationsPerHour }
-     */
     async updateSettings(req, res) {
         try {
             const { deviceId } = req.params;
@@ -127,11 +113,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Bật/tắt thông báo
-     * PUT /api/notifications/:deviceId/toggle
-     * Body: { enabled }
-     */
     async toggleNotifications(req, res) {
         try {
             const { deviceId } = req.params;
@@ -155,10 +136,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Đánh dấu notification đã đọc
-     * PUT /api/notifications/:notificationId/read
-     */
     async markAsRead(req, res) {
         try {
             const { notificationId } = req.params;
@@ -176,10 +153,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Đánh dấu tất cả notifications đã đọc
-     * PUT /api/notifications/:deviceId/read-all
-     */
     async markAllAsRead(req, res) {
         try {
             const { deviceId } = req.params;
@@ -200,10 +173,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Xóa notification
-     * DELETE /api/notifications/:notificationId
-     */
     async deleteNotification(req, res) {
         try {
             const { notificationId } = req.params;
@@ -217,10 +186,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Xóa notifications cũ
-     * DELETE /api/notifications/:deviceId/old?days=30
-     */
     async deleteOldNotifications(req, res) {
         try {
             const { deviceId } = req.params;
@@ -242,10 +207,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Lấy số lượng notifications chưa đọc
-     * GET /api/notifications/:deviceId/unread-count
-     */
     async getUnreadCount(req, res) {
         try {
             const { deviceId } = req.params;
@@ -264,10 +225,6 @@ class NotificationController {
         }
     }
 
-    /**
-     * Lấy thống kê notifications
-     * GET /api/notifications/:deviceId/stats?days=7
-     */
     async getStats(req, res) {
         try {
             const { deviceId } = req.params;

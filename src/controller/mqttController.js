@@ -97,10 +97,10 @@ class MQTTController {
 
     async sendChangeThreshold(req, res) {
         try {
-            const { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP, deviceId } = req.body;
+            const { MQ2Threshold, MQ135Threshold, HumThreshold, TempThreshold, DustThreshold, deviceId } = req.body;
 
             // Validate required fields
-            if (!THRESHOLD34 && !THRESHOLD35 && !THRESHOLD_HUMD && !THRESHOLD_TEMP) {
+            if (!MQ2Threshold && !MQ135Threshold && !HumThreshold && !TempThreshold && !DustThreshold) {
                 return errorResponse(
                     res,
                     'Vui lòng cung cấp ít nhất một threshold',
@@ -109,11 +109,11 @@ class MQTTController {
             }
 
             const thresholdData = {
-                THRESHOLD_MQ2,
-                THRESHOLD_MQ135,
-                THRESHOLD_DUST,
-                THRESHOLD_HUMD,
-                THRESHOLD_TEMP
+                MQ2Threshold,
+                MQ135Threshold,
+                DustThreshold,
+                HumThreshold,
+                TempThreshold
             };
 
             const result = await mqttService.changeThreshold(thresholdData, deviceId);

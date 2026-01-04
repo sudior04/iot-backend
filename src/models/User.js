@@ -64,9 +64,6 @@ const userSchema = new mongoose.Schema({
     timestamps: true // Tự động tạo createdAt và updatedAt
 });
 
-/**
- * Pre-save hook - Hash password trước khi lưu
- */
 userSchema.pre('save', async function () {
     // Chỉ hash password nếu nó được modify
     if (!this.isModified('password')) return;
@@ -81,18 +78,10 @@ userSchema.pre('save', async function () {
     }
 });
 
-/**
- * Indexes
- */
 userSchema.index({ email: 1 });
 userSchema.index({ username: 1 });
 userSchema.index({ passwordResetToken: 1 });
 
-/**
- * Methods
- */
-
-// Ẩn password khi convert sang JSON
 userSchema.methods.toJSON = function () {
     const user = this.toObject();
     delete user.password;
@@ -100,7 +89,6 @@ userSchema.methods.toJSON = function () {
     return user;
 };
 
-// So sánh password với bcrypt
 userSchema.methods.comparePassword = async function (candidatePassword) {
     try {
         const bcrypt = require('bcryptjs');
@@ -110,14 +98,11 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     }
 };
 
-// Kiểm tra xem account có bị lock không
 userSchema.methods.isLocked = function () {
     return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
-// Tăng login attempts
 userSchema.methods.incLoginAttempts = function () {
-    // Nếu có lockUntil và đã hết hạn, reset attempts
     if (this.lockUntil && this.lockUntil < Date.now()) {
         return this.updateOne({
             $set: { loginAttempts: 1 },
@@ -129,7 +114,6 @@ userSchema.methods.incLoginAttempts = function () {
     const maxAttempts = 5;
     const lockTime = 2 * 60 * 60 * 1000; // 2 giờ
 
-    // Lock account nếu đạt max attempts
     if (this.loginAttempts + 1 >= maxAttempts && !this.isLocked()) {
         updates.$set = { lockUntil: Date.now() + lockTime };
     }
@@ -137,7 +121,6 @@ userSchema.methods.incLoginAttempts = function () {
     return this.updateOne(updates);
 };
 
-// Reset login attempts khi login thành công
 userSchema.methods.resetLoginAttempts = function () {
     return this.updateOne({
         $set: { loginAttempts: 0 },
@@ -145,12 +128,10 @@ userSchema.methods.resetLoginAttempts = function () {
     });
 };
 
-// Tạo password reset token
 userSchema.methods.createPasswordResetToken = function () {
     const crypto = require('crypto');
     const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Hash token trước khi lưu vào database
     this.passwordResetToken = crypto
         .createHash('sha256')
         .update(resetToken)
@@ -159,14 +140,9 @@ userSchema.methods.createPasswordResetToken = function () {
     // Token hết hạn sau 10 phút
     this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
-    return resetToken; // Trả về token chưa hash để gửi cho user
+    return resetToken;
 };
 
-/**
- * Statics
- */
-
-// Tìm user theo email hoặc username
 userSchema.statics.findByEmailOrUsername = function (identifier) {
     return this.findOne({
         $or: [

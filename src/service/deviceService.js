@@ -38,16 +38,19 @@ class DeviceService {
 
     async updateThresholds(deviceId, thresholds) {
         try {
-            const { THRESHOLD34, THRESHOLD35, THRESHOLD_HUMD, THRESHOLD_TEMP } = thresholds;
+            const { MQ2Threshold, MQ135Threshold, HumThreshold, TempThreshold, DustThreshold } = thresholds;
+
+            const updateData = {};
+
+            if (MQ2Threshold !== undefined) updateData.MQ2Threshold = MQ2Threshold;
+            if (MQ135Threshold !== undefined) updateData.MQ135Threshold = MQ135Threshold;
+            if (HumThreshold !== undefined) updateData.HumThreshold = HumThreshold;
+            if (TempThreshold !== undefined) updateData.TempThreshold = TempThreshold;
+            if (DustThreshold !== undefined) updateData.DustThreshold = DustThreshold;
 
             const device = await Device.findOneAndUpdate(
                 { deviceId },
-                {
-                    MQ135Threshold: THRESHOLD34,
-                    MQ2Threshold: THRESHOLD35,
-                    HumThreshold: THRESHOLD_HUMD,
-                    TempThreshold: THRESHOLD_TEMP
-                },
+                updateData,
                 { new: true }
             );
 

@@ -67,7 +67,7 @@ class MQTTService {
             };
 
             const result = this.mqttClient.publish(
-                config.mqtt.topics.command,
+                config.mqtt.topics.alarmOff,
                 JSON.stringify(payload)
             );
 
@@ -119,11 +119,11 @@ class MQTTService {
 
             const payload = {
                 deviceId,
-                THRESHOLD_MQ2: this.toNumber(thresholdData.THRESHOLD34),
-                THRESHOLD_MQ135: this.toNumber(thresholdData.THRESHOLD35),
-                THRESHOLD_HUMD: this.toNumber(thresholdData.THRESHOLD_HUMD),
-                THRESHOLD_TEMP: this.toNumber(thresholdData.THRESHOLD_TEMP),
-                THRESHOLD_DUST: this.toNumber(thresholdData.THRESHOLD_DUST),
+                MQ2Threshold: this.toNumber(thresholdData.MQ2Threshold),
+                MQ135Threshold: this.toNumber(thresholdData.MQ135Threshold),
+                HumThreshold: this.toNumber(thresholdData.HumThreshold),
+                TempThreshold: this.toNumber(thresholdData.TempThreshold),
+                DustThreshold: this.toNumber(thresholdData.DustThreshold),
                 timestamp: new Date().toISOString()
             };
 
@@ -141,68 +141,6 @@ class MQTTService {
         }
     }
 
-    async checkThresholdsAndNotify(device, record, data) {
-        try {
-            const notifications = [];
-
-            // PM2.5 (dùng dust)
-            if (data.dust !== undefined && data.dust > 100) {
-                notifications.push({
-                    type: 'high_pm25',
-                    message: `PM2.5 cao: ${data.dust} µg/m³`,
-                    severity: data.dust > 200 ? 'critical' : 'warning'
-                });
-            }
-
-            if (data.mq135 !== undefined && device.MQ135Threshold && data.mq135 > device.MQ135Threshold) {
-                notifications.push({
-                    type: 'high_mq135',
-                    message: `MQ135 vượt ngưỡng: ${data.mq135}`,
-                    severity: 'warning'
-                });
-            }
-
-            if (data.mq2 !== undefined && device.MQ2Threshold && data.mq2 > device.MQ2Threshold) {
-                notifications.push({
-                    type: 'high_mq2',
-                    message: `MQ2 vượt ngưỡng: ${data.mq2}`,
-                    severity: 'warning'
-                });
-            }
-
-            if (data.temp !== undefined && device.TempThreshold && data.temp > device.TempThreshold) {
-                notifications.push({
-                    type: 'high_temperature',
-                    message: `Nhiệt độ cao: ${data.temp}°C`,
-                    severity: 'warning'
-                });
-            }
-
-            if (data.humidity !== undefined && device.HumThreshold && data.humidity > device.HumThreshold) {
-                notifications.push({
-                    type: 'high_humidity',
-                    message: `Độ ẩm cao: ${data.humidity}%`,
-                    severity: 'info'
-                });
-            }
-
-            for (const notif of notifications) {
-                await notificationService.createNotification(
-                    device._id,
-                    record._id,
-                    notif.type,
-                    notif.message,
-                    notif.severity
-                );
-            }
-
-            return notifications;
-        } catch (error) {
-            logger.error('Error in checkThresholdsAndNotify:', error);
-            return [];
-        }
-    }
-
     validateThresholds(th) {
         const check = (v, min, max, name) => {
             if (v !== undefined) {
@@ -213,14 +151,13 @@ class MQTTService {
             }
         };
 
-        check(th.THRESHOLD34, 0, undefined, 'THRESHOLD34 (MQ2)');
-        check(th.THRESHOLD35, 0, undefined, 'THRESHOLD35 (MQ135)');
-        check(th.THRESHOLD_HUMD, 0, 100, 'THRESHOLD_HUMD');
-        check(th.THRESHOLD_TEMP, -50, 100, 'THRESHOLD_TEMP');
-        check(th.THRESHOLD_DUST, 0, undefined, 'THRESHOLD_DUST');
+        check(th.MQ2Threshold, 0, undefined, 'MQ2Threshold');
+        check(th.MQ135Threshold, 0, undefined, 'MQ135Threshold');
+        check(th.HumThreshold, 0, 100, 'HumThreshold');
+        check(th.TempThreshold, -50, 100, 'TempThreshold');
+        check(th.DustThreshold, 0, undefined, 'DustThreshold');
     }
 
-    /* ===================== UTIL ===================== */
 
     toNumber(v) {
         if (v === null || v === undefined || v === '') return undefined;

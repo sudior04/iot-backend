@@ -4,14 +4,8 @@ const { successResponse, errorResponse } = require('../utils/responseHandler');
 const HTTP_STATUS = require('../constants/httpStatus');
 const logger = require('../utils/logger');
 
-/**
- * User Controller - Xử lý HTTP requests liên quan đến user
- */
+
 class UserController {
-    /**
-     * Đăng ký user mới
-     * POST /api/users/register
-     */
     async register(req, res) {
         try {
             const userData = req.body;
@@ -35,10 +29,7 @@ class UserController {
         }
     }
 
-    /**
-     * Tạo user mới (Admin function)
-     * POST /api/users
-     */
+
     async createUser(req, res) {
         try {
             const userData = req.body;
@@ -50,10 +41,6 @@ class UserController {
         }
     }
 
-    /**
-     * Lấy tất cả users
-     * GET /api/users?page=1&limit=20&role=user&isActive=true&search=keyword
-     */
     async getAllUsers(req, res) {
         try {
             const page = parseInt(req.query.page) || 1;
@@ -71,10 +58,6 @@ class UserController {
         }
     }
 
-    /**
-     * Lấy user theo ID
-     * GET /api/users/:id
-     */
     async getUserById(req, res) {
         try {
             const { id } = req.params;
@@ -90,10 +73,6 @@ class UserController {
         }
     }
 
-    /**
-     * Cập nhật user
-     * PUT /api/users/:id
-     */
     async updateUser(req, res) {
         try {
             const { id } = req.params;
@@ -106,10 +85,6 @@ class UserController {
         }
     }
 
-    /**
-     * Cập nhật password
-     * PUT /api/users/:id/password
-     */
     async updatePassword(req, res) {
         try {
             const { id } = req.params;
@@ -126,10 +101,6 @@ class UserController {
         }
     }
 
-    /**
-     * Xóa user (soft delete)
-     * DELETE /api/users/:id
-     */
     async deleteUser(req, res) {
         try {
             const { id } = req.params;
@@ -140,10 +111,6 @@ class UserController {
         }
     }
 
-    /**
-     * Xóa user vĩnh viễn (hard delete)
-     * DELETE /api/users/:id/permanent
-     */
     async permanentDeleteUser(req, res) {
         try {
             const { id } = req.params;
@@ -154,10 +121,6 @@ class UserController {
         }
     }
 
-    /**
-     * Đếm số lượng users
-     * GET /api/users/count
-     */
     async countUsers(req, res) {
         try {
             const filters = {
@@ -172,10 +135,6 @@ class UserController {
         }
     }
 
-    /**
-     * Login
-     * POST /api/users/login
-     */
     async login(req, res) {
         try {
             const { identifier, password } = req.body;
@@ -204,10 +163,6 @@ class UserController {
         }
     }
 
-    /**
-     * Logout
-     * POST /api/users/logout
-     */
     async logout(req, res) {
         try {
             const userId = req.user._id; // Từ authenticate middleware
@@ -221,11 +176,6 @@ class UserController {
         }
     }
 
-    /**
-     * Refresh token
-     * POST /api/users/refresh-token
-     * Body: { refreshToken }
-     */
     async refreshToken(req, res) {
         try {
             const { refreshToken } = req.body;
@@ -260,11 +210,6 @@ class UserController {
         }
     }
 
-    /**
-     * Yêu cầu reset password
-     * POST /api/users/forgot-password
-     * Body: { email }
-     */
     async forgotPassword(req, res) {
         try {
             const { email } = req.body;
@@ -287,11 +232,6 @@ class UserController {
         }
     }
 
-    /**
-     * Reset password với token
-     * POST /api/users/reset-password
-     * Body: { token, newPassword }
-     */
     async resetPassword(req, res) {
         try {
             const { token, newPassword } = req.body;
@@ -309,11 +249,6 @@ class UserController {
         }
     }
 
-    /**
-     * Thay đổi password (cần đăng nhập)
-     * PUT /api/users/change-password
-     * Body: { currentPassword, newPassword }
-     */
     async changePassword(req, res) {
         try {
             const userId = req.user._id; // Từ authenticate middleware
@@ -332,10 +267,6 @@ class UserController {
         }
     }
 
-    /**
-     * Lấy profile của user hiện tại
-     * GET /api/users/profile
-     */
     async getProfile(req, res) {
         try {
             const userId = req.user._id; // Từ authenticate middleware
@@ -352,10 +283,6 @@ class UserController {
         }
     }
 
-    /**
-     * Cập nhật profile của user hiện tại
-     * PUT /api/users/profile
-     */
     async updateProfile(req, res) {
         try {
             const userId = req.user._id; // Từ authenticate middleware
@@ -374,10 +301,6 @@ class UserController {
         }
     }
 
-    /**
-     * Lấy thống kê users (Admin)
-     * GET /api/users/stats
-     */
     async getUserStats(req, res) {
         try {
             const stats = await userService.getUserStats();
@@ -388,10 +311,6 @@ class UserController {
         }
     }
 
-    /**
-     * Unlock account (Admin)
-     * POST /api/users/:id/unlock
-     */
     async unlockAccount(req, res) {
         try {
             const { id } = req.params;
@@ -404,11 +323,6 @@ class UserController {
         }
     }
 
-    /**
-     * Thay đổi role user (Admin)
-     * PUT /api/users/:id/role
-     * Body: { role }
-     */
     async changeRole(req, res) {
         try {
             const { id } = req.params;

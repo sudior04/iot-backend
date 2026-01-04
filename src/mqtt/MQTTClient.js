@@ -11,7 +11,6 @@ class MQTTClient {
         this.isConnected = false;
         this.io = io;
 
-        // cache realtime cho frontend
         this.dataStore = {
             dust: null,
             mq135: null,
@@ -38,8 +37,6 @@ class MQTTClient {
         };
     }
 
-    /* ===================== CONNECT ===================== */
-
     connect() {
         const options = {
             clientId: `backend_${Math.random().toString(16).slice(3)}`,
@@ -65,7 +62,6 @@ class MQTTClient {
             this.isConnected = true;
             logger.info('✅ MQTT connected');
 
-            // SUBSCRIBE ALL
             this.client.subscribe(config.mqtt.topics.all, err => {
                 if (err) return logger.error('Subscribe error:', err);
                 logger.info(`Subscribed: ${config.mqtt.topics.all}`);
@@ -85,8 +81,6 @@ class MQTTClient {
         this.client.on('reconnect', () => logger.info('MQTT reconnecting...'));
     }
 
-    /* ===================== MESSAGE HANDLER ===================== */
-
     async handleMessage(topic, message) {
         const raw = message.toString();
 
@@ -104,15 +98,12 @@ class MQTTClient {
                 return;
             }
 
-            /* ---------- SENSOR DATA ---------- */
             if (
                 topic === config.mqtt.topics.data ||
                 topic.startsWith(config.mqtt.topics.data + '/')
             ) {
-                // Chuẩn hóa deviceId (convert number to string)
                 const deviceId = String(json.deviceId || json.device || 'esp32');
 
-                // Chuẩn hoá dữ liệu
                 const sensorData = {
                     events: json.event || json.events || null,
                     dust: this.toNumber(json.dust || json.pm25),
@@ -124,14 +115,12 @@ class MQTTClient {
 
                 console.log('📊 Normalized sensor data:', sensorData);
 
-                // phải có ít nhất 1 sensor
                 const hasValue = Object.values(sensorData).some(v => typeof v === 'number');
                 if (!hasValue) {
                     logger.warn('Sensor message without data, ignored');
                     return;
                 }
 
-                // get/create device
                 let device = await Device.findOne({ deviceId });
                 if (!device) {
                     device = await Device.create({
@@ -141,7 +130,6 @@ class MQTTClient {
                     });
                 }
 
-                // save DB
                 const record = await AirQuality.create({
                     device: device._id,
                     events: sensorData.events,
@@ -154,10 +142,8 @@ class MQTTClient {
 
                 logger.info(`Data saved [${deviceId}]: dust=${sensorData.dust} mq135=${sensorData.mq135} mq2=${sensorData.mq2} temp=${sensorData.temp} humidity=${sensorData.humidity}`);
 
-                // update realtime cache
                 const updated = this.dataStore.updateAll(sensorData);
 
-                // emit realtime
                 this.io.emit('airQualityUpdate', {
                     deviceId,
                     data: updated,
@@ -168,7 +154,6 @@ class MQTTClient {
                 return;
             }
 
-            /* ---------- NOTIFICATION ---------- */
             if (topic === config.mqtt.topics.notification) {
                 const deviceId = json.deviceId || 'esp32';
 
@@ -209,8 +194,6 @@ class MQTTClient {
             logger.error('MQTT handleMessage error:', err);
         }
     }
-
-    /* ===================== PUBLISH ===================== */
 
     publish(topic, message) {
         if (!this.isConnected) {
@@ -260,8 +243,6 @@ class MQTTClient {
             brokerUrl: config.mqtt.brokerUrl
         };
     }
-
-    /* ===================== UTIL ===================== */
 
     toNumber(v) {
         if (v === null || v === undefined || v === '') return undefined;
