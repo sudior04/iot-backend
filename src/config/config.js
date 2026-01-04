@@ -16,7 +16,7 @@ module.exports = {
         username: process.env.MQTT_USERNAME || '',
         password: process.env.MQTT_PASSWORD || '',
 
-        cert: fs.readFileSync(certPath),
+        rejectUnauthorized: process.env.MQTT_REJECT_UNAUTHORIZED !== 'false',
 
         topics: {
             data: process.env.TOPIC_DATA,

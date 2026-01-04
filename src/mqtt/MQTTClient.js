@@ -54,6 +54,7 @@ class MQTTClient {
         console.log('🔧 MQTT Config:', {
             brokerUrl: config.mqtt.brokerUrl,
             username: config.mqtt.username,
+            rejectUnauthorized: config.mqtt.rejectUnauthorized,
             topics: config.mqtt.topics
         });
 
