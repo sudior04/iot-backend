@@ -3,7 +3,6 @@ const Device = require('./Device');
 
 const AirQualitySchema = new mongoose.Schema({
     device: { type: mongoose.Schema.Types.ObjectId, ref: 'Device', required: true },
-    events: String,
     mq135: Number,
     mq2: Number,
     humidity: Number,

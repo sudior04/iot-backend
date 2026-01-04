@@ -84,9 +84,9 @@ class MQTTService {
         try {
             if (!this.isReady()) throw new Error('MQTT client chưa sẵn sàng');
 
-            const publishMs = Number(rate);
-            if (Number.isNaN(publishMs) || publishMs < 2000 || publishMs > 600000) {
-                throw new Error('publish_ms phải từ 2000–600000 ms');
+            const publishMs = Number(rate) * 1000;
+            if (Number.isNaN(publishMs) || publishMs < 500 || publishMs > 60000) {
+                throw new Error('publish_ms phải từ 0.5–60 s');
             }
 
             const payload = {

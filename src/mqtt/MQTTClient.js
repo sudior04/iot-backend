@@ -151,7 +151,7 @@ class MQTTClient {
                     humidity: sensorData.humidity
                 });
 
-                logger.info(`✅ Data saved [${deviceId}]: dust=${sensorData.dust} mq135=${sensorData.mq135} mq2=${sensorData.mq2} temp=${sensorData.temp} humidity=${sensorData.humidity}`);
+                logger.info(`Data saved [${deviceId}]: dust=${sensorData.dust} mq135=${sensorData.mq135} mq2=${sensorData.mq2} temp=${sensorData.temp} humidity=${sensorData.humidity}`);
 
                 // update realtime cache
                 const updated = this.dataStore.updateAll(sensorData);
@@ -163,7 +163,7 @@ class MQTTClient {
                     timestamp: new Date()
                 });
 
-                logger.info(`✅ Sensor data saved: ${deviceId}`);
+                logger.info(`Sensor data saved: ${deviceId}`);
                 return;
             }
 
@@ -200,7 +200,7 @@ class MQTTClient {
                     notificationId: notify._id
                 });
 
-                logger.info(`✅ Notification created: ${notify._id}`);
+                logger.info(`Notification created: ${notify._id}`);
                 return;
             }
 
